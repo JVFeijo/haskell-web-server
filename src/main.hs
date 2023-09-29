@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 import qualified Data.Text as T
+import qualified Data.Text.IO as T.IO
 import Network.Wai
 import Network.HTTP.Types
 import Network.Wai.Handler.Warp (run)
 import GHC.Generics
 import Data.Aeson (ToJSON, FromJSON, fromEncoding, toEncoding)
-
-
-data Comment = Comment { text :: T.Text } deriving (Generic, Show)
+import Control.Applicative (liftA2)
+newtype Comment = Comment { text :: T.Text } deriving (Generic, Show)
 
 instance ToJSON Comment
 instance FromJSON Comment
@@ -21,8 +21,11 @@ jsonResponse = responseBuilder
     [(hContentType, "application/json")]
     . fromEncoding . toEncoding
 
+logginStdout :: T.Text -> IO ()
+logginStdout = T.IO.putStrLn
+
 app :: Application
-app _ respond = respond $ jsonResponse hello
+app req respond = liftA2 (*>) logginStdout (respond . jsonResponse) ((head . pathInfo) req)
 
 main :: IO ()
 main = do
